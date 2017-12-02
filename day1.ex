@@ -36,10 +36,3 @@ Enum.each(
     IO.puts "captcha2: #{Day1.captcha2(x)}"
   end
 )
-
-# Enum.each(
-#   ["1212", "1221", "123425", "123123", "12131415"],
-#   fn(x) ->
-#     IO.puts "#{x}: #{Day1.captcha2(x)}"
-#   end
-# )
