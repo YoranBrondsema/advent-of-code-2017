@@ -155,7 +155,7 @@ defmodule Day7 do
   defp add_is_balanced(name, { weight }, children) do
     distinct_weights_count = children
                              |> Enum.map(
-                               fn({ child_name, child_weight, _}) ->
+                               fn({ _, child_weight, _}) ->
                                  child_weight
                                end
                              )
@@ -185,18 +185,27 @@ defmodule Day7 do
     weight + weight_of_children
   end
 
+  def find_last_unbalanced_node({ _, _, true, children }) do
+    find_last_unbalanced_node(children)
+  end
   def find_last_unbalanced_node(node) when is_tuple(node) do
-    { name, { weight, true }, children } = node
+    { _, _, false, children } = node
 
     all_children_balanced = children
                             |> Enum.all?(
-                              fn(name, { weight, is_balanced }, children) ->
-                                 is_balanced
+                              fn({_, _, is_balanced, _}) ->
+                                is_balanced
                               end
                             )
+
     case all_children_balanced do
-      false -> 
+      true -> node
+      false -> find_last_unbalanced_node(children)
     end
+  end
+  def find_last_unbalanced_node(nodes) do
+    nodes
+    |> Enum.find_value(&find_last_unbalanced_node/1)
   end
 
   # Applies a function to each node.
@@ -223,52 +232,24 @@ defmodule Day7 do
   end
 end
 
-input = "
-  pbga (66)
-  xhth (57)
-  ebii (61)
-  havc (66)
-  ktlj (57)
-  fwft (72) -> ktlj, cntj, xhth
-  qoyq (66)
-  padx (45) -> pbga, havc, qoyq
-  tknk (41) -> ugml, padx, fwft
-  jptl (61)
-  ugml (68) -> gyxo, ebii, jptl
-  gyxo (61)
-  cntj (57)
-"
-# { :ok, input } = File.read "day7-input.txt"
+{ :ok, input } = File.read "day7-input.txt"
 
 tree = Day7.to_tree(input)
 weights = Day7.parse_weights(input)
 
-Day7.with_weight(tree, weights)
-|> Day7.with_is_balanced
-|> IO.inspect
+{ _, _, _, children } = Day7.with_weight(tree, weights)
+                        |> Day7.with_is_balanced
+                        |> Day7.find_last_unbalanced_node
 
-ExUnit.start()
-defmodule ExampleTest do
-  use ExUnit.Case
-  import Day7
-
-  test "#bottom_program" do
-    input = "
-      pbga (66)
-      xhth (57)
-      ebii (61)
-      havc (66)
-      ktlj (57)
-      fwft (72) -> ktlj, cntj, xhth
-      qoyq (66)
-      padx (45) -> pbga, havc, qoyq
-      tknk (41) -> ugml, padx, fwft
-      jptl (61)
-      ugml (68) -> gyxo, ebii, jptl
-      gyxo (61)
-      cntj (57)
-    "
-
-    assert bottom_program(input) == "tknk"
+children
+|> Enum.map(
+  fn({ name, total_weight, _, _}) ->
+    { :ok, weight } = Map.fetch(weights, name)
+    {
+      name,
+      total_weight,
+      weight
+    }
   end
-end
+)
+|> IO.inspect
