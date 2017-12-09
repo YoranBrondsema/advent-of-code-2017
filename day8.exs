@@ -18,7 +18,7 @@ defmodule Day8 do
       ~r/(.+) (inc|dec) (.+) if (.+) (.+) (.+)/
       |> Regex.run(instruction)
 
-    case evaluate(cond_left, cond_op, cond_right, registry) do
+    case evaluate_cond(cond_left, cond_op, cond_right, registry) do
       true ->
         left = Map.get(registry, register, 0)
         right = String.to_integer(operand)
@@ -36,19 +36,16 @@ defmodule Day8 do
   defp get_operation("inc"), do: &+/2
   defp get_operation("dec"), do: &-/2
 
-  defp evaluate(cond_left, cond_op, cond_right, registry) do
-    left = Map.get(registry, cond_left, 0)
-    right = String.to_integer(cond_right)
-
-    _evaluate(cond_op, left, right)
+  defp evaluate_cond(left, op, right, registry) do
+    apply(
+      Kernel,
+      String.to_atom(op),
+      [
+        Map.get(registry, left, 0),
+        String.to_integer(right)
+      ]
+    )
   end
-
-  defp _evaluate(">", left, right), do: left > right
-  defp _evaluate(">=", left, right), do: left >= right
-  defp _evaluate("<", left, right), do: left < right
-  defp _evaluate("<=", left, right), do: left <= right
-  defp _evaluate("==", left, right), do: left == right
-  defp _evaluate("!=", left, right), do: left != right
 
   def max(registry) do
     registry
