@@ -6,9 +6,7 @@ defmodule Day7 do
 
   def to_tree(input) do
     [ tree ] = input
-               |> String.trim
-               |> String.split("\n", trim: true)
-               |> Enum.map(&String.trim/1)
+               |> to_list_of_inputs
                |> Enum.map(&to_name_with_children/1)
                |> Enum.reduce(
                  MapSet.new,
@@ -18,6 +16,7 @@ defmodule Day7 do
 
     tree
   end
+
 
   def process_line(name_with_children, trees) do
     { name, children } = name_with_children
@@ -110,6 +109,118 @@ defmodule Day7 do
     end
   end
 
+  def parse_weights(input) do
+    input
+    |> to_list_of_inputs
+    |> Enum.map(&parse_weight/1)
+    |> Enum.reduce(
+      Map.new,
+      fn({ name, weight }, map_of_weights) ->
+        map_of_weights
+        |> Map.put(name, weight)
+      end
+    )
+  end
+
+  def parse_weight(input_line) do
+    [_, name, weight] = ~r/(.+) \((\d+)\)/
+                  |> Regex.run(input_line)
+    { name, String.to_integer(weight) }
+  end
+
+  defp to_list_of_inputs(input) do
+    input
+    |> String.trim
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.trim/1)
+  end
+
+  def with_weight(trees, weights) do
+    trees
+    |> map(
+      fn(name, {}, children) ->
+        {
+          name,
+          weight({ name, children }, weights)
+        }
+      end
+    )
+  end
+
+  def with_is_balanced(trees_with_weights) do
+    trees_with_weights
+    |> map(&add_is_balanced/3)
+  end
+
+  defp add_is_balanced(name, { weight }, children) do
+    distinct_weights_count = children
+                             |> Enum.map(
+                               fn({ child_name, child_weight, _}) ->
+                                 child_weight
+                               end
+                             )
+                             |> MapSet.new
+                             |> MapSet.size
+
+    is_balanced = (distinct_weights_count <= 1)
+
+    {
+      name,
+      weight,
+      is_balanced
+    }
+  end
+
+
+  def weight({ name, children }, weights) do
+    { :ok, weight } = Map.fetch(weights, name)
+    weight_of_children = children
+                         |> Enum.reduce(
+                           0,
+                           fn(child, sum) ->
+                             sum + weight(child, weights)
+                           end
+                         )
+
+    weight + weight_of_children
+  end
+
+  def find_last_unbalanced_node(node) when is_tuple(node) do
+    { name, { weight, true }, children } = node
+
+    all_children_balanced = children
+                            |> Enum.all?(
+                              fn(name, { weight, is_balanced }, children) ->
+                                 is_balanced
+                              end
+                            )
+    case all_children_balanced do
+      false -> 
+    end
+  end
+
+  # Applies a function to each node.
+  # fn(name, payload, data)
+  defp map(node, func) when is_tuple(node) do
+    [ name | rest ] = node
+                      |> Tuple.to_list
+
+    [ children | reversed_node_data ] =
+      rest
+      |> Enum.reverse
+
+    node_data = reversed_node_data
+                |> Enum.reverse
+                |> List.to_tuple
+
+    func.(name, node_data, children)
+    |> Tuple.append(map(children, func))
+  end
+  defp map(trees, func) do
+    trees
+    |> Enum.map(fn(tree) -> map(tree, func) end)
+    |> MapSet.new
+  end
 end
 
 input = "
@@ -127,9 +238,14 @@ input = "
   gyxo (61)
   cntj (57)
 "
+# { :ok, input } = File.read "day7-input.txt"
 
-{ :ok, input } = File.read "day7-input.txt"
-IO.puts Day7.bottom_program(input)
+tree = Day7.to_tree(input)
+weights = Day7.parse_weights(input)
+
+Day7.with_weight(tree, weights)
+|> Day7.with_is_balanced
+|> IO.inspect
 
 ExUnit.start()
 defmodule ExampleTest do
