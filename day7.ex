@@ -60,7 +60,7 @@ defmodule Day7 do
   def filter(tree, fun) do
     tree
     |> Enum.filter(fun)
-    |> Enum.map( fn({k, v}) -> {k, filter(v, fun)} end)
+    |> Enum.map(fn({k, v}) -> {k, filter(v, fun)} end)
     |> Map.new
   end
 
