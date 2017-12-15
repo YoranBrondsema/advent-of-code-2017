@@ -37,7 +37,7 @@ defmodule Day10 do
   def shift(l, 0), do: l
   def shift(l, n), do: Enum.slice(l, -n..-1) ++ Enum.slice(l, 0..-(n+1))
 
-  def hash2(input) do
+  def knot_hash(input) do
     lengths = get_lengths(input) ++ [17, 31, 73, 47, 23]
     initial_hash = Enum.to_list(0..255)
 
@@ -75,44 +75,5 @@ defmodule Day10 do
   def get_lengths(s) do
     s
     |> String.to_charlist
-  end
-end
-
-lengths = [14,58,0,116,179,16,1,104,2,254,167,86,255,55,122,244]
-
-hash = lengths
-       |> Day10.hash(255)
-
-[ first | [second | _] ] = hash
-IO.puts "Multiply: #{first * second}"
-
-hash2 = lengths
-        |> Enum.map(&Integer.to_string/1)
-        |> Enum.join(",")
-        |> Day10.hash2
-IO.puts "Knot hash: #{hash2}"
-
-ExUnit.start()
-defmodule ExampleTest do
-  use ExUnit.Case
-  import Day10
-
-  test "#hash" do
-    assert hash([3, 4, 1, 5], 4) == [3, 4, 2, 1, 0]
-  end
-
-  test "#get_lengths" do
-    assert get_lengths("1,2,3") == [49,44,50,44,51]
-  end
-
-  test "#xor" do
-    assert xor([65, 27, 9, 1, 4, 3, 40, 50, 91, 7, 6, 0, 2, 5, 68, 22]) == 64
-  end
-
-  test "hash2" do
-    assert hash2("") == "a2582a3a0e66e6e86e3812dcb672a272"
-    assert hash2("AoC 2017") == "33efeb34ea91902bb2f59c9920caa6cd"
-    assert hash2("1,2,3") == "3efbe78a8d82f29979031a4aa0b16a9d"
-    assert hash2("1,2,4") == "63960835bcdc130f0b66d7ff4f6a5a8e"
   end
 end
