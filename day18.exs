@@ -202,15 +202,6 @@ defmodule Day18 do
   end
 end
 
-# input = "
-# snd 1
-# snd 2
-# snd p
-# rcv a
-# rcv b
-# rcv c
-# rcv d
-# "
 { :ok, input } = File.read "day18-input.txt"
 
 { _, _, snd_count, _ } = input
