@@ -3,7 +3,9 @@ defmodule Day21 do
     1..iteration_count
     |> Enum.reduce(
       initial_grid,
-      fn(_, grid) ->
+      fn(count, grid) ->
+        IO.puts count
+
         cond do
           rem(dimension(grid), 2) == 0 ->
             grid
@@ -77,7 +79,7 @@ defmodule Day21 do
 
   def transform(small_squares, rules) do
     small_squares
-    |> Enum.map(
+    |> pmap(
       fn(small_square) ->
         find_rule_for_square(small_square, rules)
       end
@@ -295,6 +297,12 @@ defmodule Day21 do
       fn(value) -> value == :on end
     )
   end
+
+  defp pmap(collection, func) do
+    collection
+    |> Enum.map(&(Task.async(fn -> func.(&1) end)))
+    |> Enum.map(&Task.await/1)
+  end
 end
 
 grid = [
@@ -310,11 +318,10 @@ grid = [
 { :ok, input } = File.read "day21-input.txt"
 rules = Day21.process_rules(input)
 
-#
-# result = Day21.grids(rules, grid, 5)
-#
-# Day21.draw(result)
-# |> IO.puts
+result = Day21.grids(rules, grid, 18)
+
+Day21.draw(result)
+|> IO.puts
 #
 # IO.puts "Number of on pixels"
 # IO.inspect Day21.number_of_on_pixels(result)
