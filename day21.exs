@@ -3,7 +3,7 @@ defmodule Day21 do
     1..iteration_count
     |> Enum.reduce(
       initial_grid,
-      fn(count, grid) ->
+      fn(_, grid) ->
         cond do
           rem(dimension(grid), 2) == 0 ->
             grid
@@ -79,19 +79,14 @@ defmodule Day21 do
     small_squares
     |> Enum.map(
       fn(small_square) ->
-        { _, post } = find_rule_for_square(small_square, rules)
-        post
+        find_rule_for_square(small_square, rules)
       end
     )
   end
 
   def find_rule_for_square(square, rules) do
     rules
-    |> Enum.find(
-      fn({pre, _}) ->
-        pre == square
-      end
-    )
+    |> Map.get(square)
   end
 
   def divide_into_small_squares(square, dim) do
@@ -128,10 +123,15 @@ defmodule Day21 do
   def process_rules(input) do
     input
     |> String.split("\n", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.filter(
+      fn(s) -> s != "" end
+    )
     |> Enum.reduce(
       [],
       &process_rule/2
     )
+    |> Map.new
   end
 
   def process_rule(input, rules) do
@@ -164,12 +164,12 @@ defmodule Day21 do
 
   def process_pattern(pattern) do
     pattern
+    |> String.trim
     |> String.split("/", trim: true)
     |> Enum.reduce(
       [],
       fn(pattern, pixels) ->
         pattern
-        |> String.trim
         |> String.split("", trim: true)
         |> Enum.reduce(
           pixels,
@@ -177,6 +177,7 @@ defmodule Day21 do
             case symbol do
               "#" -> [:on | pixels]
               "." -> [:off | pixels]
+              _ -> pixels
             end
           end
         )
@@ -309,13 +310,14 @@ grid = [
 { :ok, input } = File.read "day21-input.txt"
 rules = Day21.process_rules(input)
 
-result = Day21.grids(rules, grid, 5)
-
-Day21.draw(result)
-|> IO.puts
-
-IO.puts "Number of on pixels"
-IO.inspect Day21.number_of_on_pixels(result)
+#
+# result = Day21.grids(rules, grid, 5)
+#
+# Day21.draw(result)
+# |> IO.puts
+#
+# IO.puts "Number of on pixels"
+# IO.inspect Day21.number_of_on_pixels(result)
 
 
 ExUnit.start()
@@ -367,11 +369,11 @@ defmodule ExampleTest do
       :on, :on, :on
     ]
     input = "
-    ../.# => ##./#../...
-    .#./..#/### => #..#/..../..../#..#
+      ../.# => ##./#../...
+      .#./..#/### => #..#/..../..../#..#
     "
     rules = Day21.process_rules(input)
 
-    assert Day21.grids(rules, grid, 5) == []
+    assert Day21.grids(rules, grid, 2) == [:on, :on, :off, :on, :on, :off, :on, :off, :off, :on, :off, :off, :off, :off, :off, :off, :off, :off, :on, :on, :off, :on, :on, :off, :on, :off, :off, :on, :off, :off, :off, :off, :off, :off, :off, :off]
   end
 end
