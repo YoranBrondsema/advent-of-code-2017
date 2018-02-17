@@ -43,7 +43,7 @@ defmodule Day3 do
       0..(8*(n-1)-1),
       fn(i) -> row(i, n) end
     )
-  end 
+  end
   defp row(i, n) when i < 2*n - 3, do: -n + 2 + i
   defp row(i, n) when i < 4*(n - 1), do: n - 1
   defp row(i, n) when i < 6*(n - 1) - 1, do: 5*n - 6 - i
