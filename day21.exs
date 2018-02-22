@@ -42,42 +42,49 @@ defmodule Day21 do
   end
 
   def merge(small_squares) do
+    time("merge", &_merge/1, [small_squares])
+  end
+
+  def _merge(small_squares) do
     large_dim = dimension(small_squares)
 
     small_squares
     |> Enum.with_index
     |> Enum.reduce(
-      [],
+      Map.new,
       fn({square, index}, grid) ->
         row = div(index, large_dim)
         col = rem(index, large_dim)
 
         dim = dimension(square)
 
-        cur_square = square
-                     |> Enum.with_index
-                     |> Enum.map(
-                       fn({value, index_within_square}) ->
-                         row_within_square = div(index_within_square, dim)
-                         col_within_square = rem(index_within_square, dim)
+        square
+        |> Enum.with_index
+        |> Enum.reduce(
+          grid,
+          fn({value, index_within_square}, acc) ->
+            row_within_square = div(index_within_square, dim)
+            col_within_square = rem(index_within_square, dim)
 
-                         {
-                           {
-                             row*dim + row_within_square,
-                             col*dim + col_within_square
-                           },
-                           value
-                         }
-                       end
-                     )
+            x = row*dim + row_within_square
+            y = col*dim + col_within_square
 
-        grid ++ cur_square
+            index = x * (dim * large_dim) + y
+
+
+            Map.put(acc, index, value)
+          end
+        )
       end
     )
     |> without_positions
   end
 
   def transform(small_squares, rules) do
+    time("transform", &_transform/2, [small_squares, rules])
+  end
+
+  def _transform(small_squares, rules) do
     small_squares
     |> pmap(
       fn(small_square) ->
@@ -91,35 +98,57 @@ defmodule Day21 do
     |> Map.get(square)
   end
 
-  def divide_into_small_squares(square, dim) do
-    nr_squares = :math.pow(dimension(square) / dim, 2)
-                 |> Kernel.trunc
-
-    0..(nr_squares-1)
-    |> Enum.reduce(
-      [],
-      fn(index, divided) ->
-        [ extract_square(square, index, dim) | divided]
-      end
-    )
-    |> Enum.reverse
+  def time(name, function, args) do
+    {time, result} = :timer.tc(function, args)
+    IO.puts "#{name}: #{div(time, 1000000)}s"
+    result
   end
 
-  def extract_square(square, index, dim) do
-    nr_in_row = div(dimension(square), dim)
+  def divide_into_small_squares(square, dim) do
+    time("divide", &_divide_into_small_squares/2, [square, dim])
+  end
 
-    row = rem(index, nr_in_row)
-    col = div(index, nr_in_row)
+  def _divide_into_small_squares(square, dim) do
+    nr_in_row = div(dimension(square), dim)
 
     square
     |> with_positions
-    |> Enum.filter(
-      fn({{x,y}, _}) ->
-        x >= dim*col and x < dim*(col+1) and
-        y >= dim*row and y < dim*(row+1)
+    |> Enum.reduce(
+      Map.new,
+      fn({ {x,y}, value }, small_squares) ->
+        col = div(y, dim)
+        row = div(x, dim)
+        index = nr_in_row * row + col
+
+        square = small_squares
+                 |> Map.get(index, [])
+
+        small_squares
+        |> Map.put(index, [value | square])
       end
     )
-    |> without_positions
+    |> Enum.sort(
+      fn({index1, _}, {index2, _}) -> index1 <= index2 end
+    )
+    |> pmap(
+      fn({ _, square }) ->
+        Enum.reverse(square)
+      end
+    )
+  end
+
+  def extract_square(square_with_positions, nr_in_row, index, dim) do
+    row = rem(index, nr_in_row)
+    col = div(index, nr_in_row)
+
+    x_values = (dim*col)..(dim*(col+1)-1)
+    y_values = (dim*row)..(dim*(row+1)-1)
+
+    positions = for x <- x_values, y <- y_values, do: {x, y}
+
+    square_with_positions
+    |> Map.take(positions)
+    |> Map.values
   end
 
   def process_rules(input) do
@@ -189,20 +218,15 @@ defmodule Day21 do
   end
 
   def with_positions(square) do
+    dim = dimension(square)
+
     square
-    |> Enum.chunk_every(dimension(square))
     |> Enum.with_index
-    |> Enum.reduce(
-      [],
-      fn({ row, row_index }, square_with_positions) ->
-        row
-        |> Enum.with_index
-        |> Enum.reduce(
-          square_with_positions,
-          fn({ value, col_index }, square_with_positions) ->
-            square_with_positions ++ [{ {row_index, col_index}, value }]
-          end
-        )
+    |> Enum.map(
+      fn({ value, index }) ->
+        row = div(index, dim)
+        col = rem(index, dim)
+        { { row, col }, value }
       end
     )
   end
@@ -305,6 +329,8 @@ defmodule Day21 do
   end
 end
 
+ExUnit.start()
+
 grid = [
   :off, :on, :off,
   :off, :off, :on,
@@ -320,17 +346,23 @@ rules = Day21.process_rules(input)
 
 result = Day21.grids(rules, grid, 18)
 
-Day21.draw(result)
-|> IO.puts
-#
-# IO.puts "Number of on pixels"
-# IO.inspect Day21.number_of_on_pixels(result)
+# Day21.draw(result)
+# |> IO.puts
+
+IO.puts "Number of on pixels"
+IO.inspect Day21.number_of_on_pixels(result)
 
 
-ExUnit.start()
 defmodule ExampleTest do
   use ExUnit.Case
   import Day21
+
+  test "#with_positions" do
+    input = [1, 2, 5, 6, 3, 4, 7, 8, 9, 10, 13, 14, 11, 12, 15, 16]
+    output = [{{0, 0}, 1}, {{0, 1}, 2}, {{0, 2}, 5}, {{0, 3}, 6}, {{1, 0}, 3}, {{1, 1}, 4}, {{1, 2}, 7}, {{1, 3}, 8}, {{2, 0}, 9}, {{2, 1}, 10}, {{2, 2}, 13}, {{2, 3}, 14}, {{3, 0}, 11}, {{3, 1}, 12}, {{3, 2}, 15}, {{3, 3}, 16}]
+
+    assert with_positions(input) == output
+  end
 
   test "#merge" do
     grid = [
